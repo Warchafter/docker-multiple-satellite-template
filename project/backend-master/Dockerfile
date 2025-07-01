@@ -43,8 +43,7 @@ COPY composer.json composer.lock ./
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && composer install --no-dev --optimize-autoloader \
     && rm /usr/local/bin/composer
-    
-COPY wp-content ./wp-content
+
 COPY .htaccess wp-config.php ./
 
 # ── Stage 2: Le messager de Soie - Production Runtime ─────────────────────────────────────────
