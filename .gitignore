@@ -26,14 +26,25 @@ docker-compose.prod.yml
 docker-compose.dev.yml
 
 # ==========================================
+# COMPOSER & PHP DEPENDENCIES
+# ==========================================
+vendor/
+composer.phar
+.composer-cache/
+
+# ==========================================
 # WORDPRESS
 # ==========================================
-# WordPress core (if downloaded locally)
+# WordPress core files (downloaded by Docker)
 wp-admin/
 wp-includes/
 *.php
 !wp-config.php
 !wp-content/
+
+# WordPress directory (if downloaded by Composer)
+wordpress/
+!wordpress/.gitkeep
 
 # WordPress uploads & cache
 wp-content/uploads/
@@ -43,12 +54,16 @@ wp-content/backups/
 wp-content/upgrade/
 wp-content/debug.log
 
-# WordPress plugins (if managed via Composer)
+# WordPress plugins (managed via Composer/Docker)
 wp-content/plugins/
 !wp-content/plugins/.gitkeep
+!wp-content/plugins/custom-*/
 
-# WordPress themes (if not custom)
+# WordPress themes (default themes, not custom)
 wp-content/themes/twenty*/
+wp-content/themes/hello-elementor/
+wp-content/themes/astra/
+wp-content/themes/storefront/
 
 # WordPress language files
 wp-content/languages/
@@ -56,6 +71,12 @@ wp-content/languages/
 # WordPress database dumps
 *.sql
 *.sql.gz
+
+# WordPress specific files
+wp-config-sample.php
+license.txt
+readme.html
+xmlrpc.php
 
 # ==========================================
 # NODE.JS & FRONTEND

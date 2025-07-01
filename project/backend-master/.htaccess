@@ -1,0 +1,16 @@
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Don’t rewrite the front‐controller itself
+  RewriteRule ^index\.php$ - [L]
+
+  # If the request is not a real file or directory…
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # …rewrite everything else back to index.php
+  RewriteRule . /index.php [L]
+</IfModule>
+# END WordPress

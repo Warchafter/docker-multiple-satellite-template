@@ -1,0 +1,15 @@
+{
+    "name": "yourorg/headless-wp",
+    "description": "Headless WP for Astro SSR",
+    "type": "project",
+    "require": {
+        "johnpbloch/wordpress": "^5.9",
+        "woocommerce/woocommerce": "^3.5"
+    },
+    "config": {
+        "allow-plugins": {
+            "johnpbloch/wordpress-core-installer": true,
+            "composer/installers": true
+        }
+    }
+}

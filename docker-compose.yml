@@ -1,6 +1,23 @@
 networks:
   backend-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.0.0/16
+          gateway: 10.10.0.1
   frontend-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/16
+          gateway: 10.20.0.1
+
+x-backend-env: &backend-env
+  WORDPRESS_DB_PASSWORD_FILE: /run/secrets/wp_db_pass
+  WORDPRESS_DB_USER: wp_user
+
+x-frontend-env: &frontend-env {}
 
 x-backend-template: &backend-defaults
   build:
@@ -9,40 +26,62 @@ x-backend-template: &backend-defaults
   networks: [backend-net]
   volumes:
     - wp-content:/var/www/html/wp-content
-  environment:
-    WORDPRESS_DB_USER: wp_user
-    WORDPRESS_DB_PASSWORD: wp_pass
-  depends_on:
-    - db-placeholder
+  secrets:
+    - mysql_root_pass
+    - wp_db_pass
+  healthcheck:
+    test: ["CMD-SHELL","curl -f http://localhost:80/wp-json || exit 1"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 15s
+  restart: unless-stopped
 
 x-frontend-template: &frontend-defaults
   build:
     dockerfile: Dockerfile
   image: sat-frontend:latest
   networks: [frontend-net, backend-net]
+  ports: ["4321:4321"]
+  healthcheck:
+    test: ["CMD-SHELL","curl -f http://localhost:4321/health || exit 1"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 15s
+  restart: unless-stopped
   environment:
-    API_URL: http://satellite-backend:9000
+    API_URL: http://satellite-backend:80
 
 services:
   # Master backend: Headless WP
   master-backend:
     build:
-      context: ./backend-master
+      context: ./project/backend-master
       dockerfile: Dockerfile
-    image: master-backend:latest
+    image: "master-backend:${IMAGE_TAG}" # This should be changed later on fit ${GITHUB_SHA::7} >> .env
     networks:
       - backend-net
     volumes:
       - master-wp-content:/var/www/html/wp-content
+    healthcheck:
+      test: ["CMD-SHELL","curl -f http://localhost:80/wp-json || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    secrets:
+      - wp_db_pass
     environment:
       WORDPRESS_DB_HOST: db-master
       WORDPRESS_DB_USER: wp_user
-      WORDPRESS_DB_PASSWORD: wp_pass
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/wp_db_pass
       WORDPRESS_DB_NAME: wp_master
     depends_on:
       - db-master
     ports:
-      - "9001:9000"
+      - "9001:80"
   
   # Master frontend: Astro SSR
   master-frontend:
@@ -53,8 +92,17 @@ services:
     networks:
       - frontend-net
       - backend-net
+    healthcheck:
+      test: ["CMD-SHELL","curl -f http://localhost:4321/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    secrets:
+      - mysql_root_pass
     environment:
-      API_URL: http://master-backend:9000
+      API_URL: http://master-backend:80
     ports:
       - "4321:4321"
     depends_on:
@@ -66,23 +114,25 @@ services:
     build:
       context: ./sat1-backend
     image: sat1-backend:v1.0
+    volumes:
+      - sat1-wp-content:/var/www/html/wp-content
     environment:
-      <<: *backend-defaults.environment
+      <<: *backend-env
       WORDPRESS_DB_HOST: db-sat1
-      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_NAME: wp_sat1
     depends_on:
       - db-sat1
     ports:
-      - "9011:9000"
+      - "9011:80"
 
   satellite-frontend-1:
     <<: *frontend-defaults
     build:
-      context: ./frontend-sat1
+      context: ./sat1-frontend
     image: sat1-frontend:v1.0
     environment:
-      <<: *frontend-defaults.environment
-      API_URL: http://satellite-backend-1:9000
+      <<: *frontend-env
+      API_URL: http://satellite-backend-1:80
     ports:
       - "4331:4321"
   
@@ -92,23 +142,25 @@ services:
     build:
       context: ./sat2-backend
     image: sat2-backend:v1.0
+    volumes:
+      - sat2-wp-content:/var/www/html/wp-content
     environment:
-      <<: *backend-defaults.environment
+      <<: *backend-env
       WORDPRESS_DB_HOST: db-sat2
-      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_NAME: wp_sat2
     depends_on:
       - db-sat2
     ports:
-      - "9012:9000"
+      - "9012:80"
 
   satellite-frontend-2:
     <<: *frontend-defaults
     build:
-      context: ./frontend-sat2
+      context: ./sat2-frontend
     image: sat2-frontend:v1.0
     environment:
-      <<: *frontend-defaults.environment
-      API_URL: http://satellite-backend-2:9000
+      <<: *frontend-env
+      API_URL: http://satellite-backend-2:80
     ports:
       - "4341:4321"
 
@@ -118,23 +170,25 @@ services:
     build:
       context: ./sat3-backend
     image: sat3-backend:v1.0
+    volumes:
+      - sat3-wp-content:/var/www/html/wp-content
     environment:
-      <<: *backend-defaults.environment
+      <<: *backend-env
       WORDPRESS_DB_HOST: db-sat3
-      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_NAME: wp_sat3
     depends_on:
       - db-sat3
     ports:
-      - "9013:9000"
+      - "9013:80"
 
   satellite-frontend-3:
     <<: *frontend-defaults 
     build:
-      context: ./frontend-sat3
+      context: ./sat3-frontend
     image: sat3-frontend:v1.0
     environment:
-      <<: *frontend-defaults.environment
-      API_URL: http://satellite-backend-3:9000
+      <<: *frontend-env
+      API_URL: http://satellite-backend-3:80
     ports:
       - "4351:4321"
 
@@ -144,23 +198,25 @@ services:
     build:
       context: ./sat4-backend
     image: sat4-backend:v1.0
+    volumes:
+      - sat4-wp-content:/var/www/html/wp-content
     environment:
-      <<: *backend-defaults.environment
+      <<: *backend-env
       WORDPRESS_DB_HOST: db-sat4
-      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_NAME: wp_sat4
     depends_on:
       - db-sat4
     ports:
-      - "9014:9000"
+      - "9014:80"
 
   satellite-frontend-4:
     <<: *frontend-defaults
     build:
-      context: ./frontend-sat4
+      context: ./sat4-frontend
     image: sat4-frontend:v1.0
     environment:
-      <<: *frontend-defaults.environment
-      API_URL: http://satellite-backend-4:9000
+      <<: *frontend-env
+      API_URL: http://satellite-backend-4:80
     ports:
       - "4361:4321"
 
@@ -170,32 +226,40 @@ services:
     build:
       context: ./sat5-backend
     image: sat5-backend:v1.0
+    volumes:
+      - sat5-wp-content:/var/www/html/wp-content
     environment:
+      <<: *backend-env
       WORDPRESS_DB_HOST: db-sat5
-      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_NAME: wp_sat5
     depends_on:
       - db-sat5
     ports:
-      - "9015:9000"
+      - "9015:80"
 
   satellite-frontend-5:
     <<: *frontend-defaults
     build:
-      context: ./frontend-sat5
+      context: ./sat5-frontend
     image: sat5-frontend:v1.0
     environment:
-      <<: *frontend-defaults.environment
-      API_URL: http://satellite-backend-5:9000
+      <<: *frontend-env
+      API_URL: http://satellite-backend-5:80
+    ports:
+      - "4371:4321"
 
   db-master:
     image: mysql:8.0
     networks:
       - backend-net
+    secrets:
+      - mysql_root_pass
+      - wp_db_pass
     environment:
-      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_pass
       MYSQL_DATABASE: wp_master
       MYSQL_USER: wp_user
-      MYSQL_PASSWORD: wp_pass
+      MYSQL_PASSWORD_FILE: /run/secrets/wp_db_pass
     volumes:
       - db-master-data:/var/lib/mysql
 
@@ -272,3 +336,13 @@ volumes:
   db-sat3-data:
   db-sat4-data:
   db-sat5-data:
+
+secrets:
+  wp_cli_user:
+    file: ./secrets/wp_cli_user.txt
+  wp_cli_pass:
+    file: ./secrets/wp_cli_pass.txt
+  wp_db_pass:
+    file: ./secrets/wp_db_pass.txt
+  mysql_root_pass:
+    file: ./secrets/mysql_root_pass.txt

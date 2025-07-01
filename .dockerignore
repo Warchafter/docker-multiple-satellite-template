@@ -1,4 +1,24 @@
+# Git & Version Control
+.git/
+.gitignore
+.dockerignore
+
+# Development files
 .DS_Store
-node_modules
-dist
+node_modules/
+*.log
+.env*
+
+# Documentation
+README.md
+*.md
+
+# IDE files
+.vscode/
+.idea/
+
+# Build artifacts that shouldn't be in context
+dist/
+build/
+target/
 
