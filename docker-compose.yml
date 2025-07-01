@@ -1,8 +1,27 @@
-version: "3.8"
-
 networks:
   backend-net:
   frontend-net:
+
+x-backend-template: &backend-defaults
+  build:
+    dockerfile: Dockerfile
+  image: sat-backend:latest
+  networks: [backend-net]
+  volumes:
+    - wp-content:/var/www/html/wp-content
+  environment:
+    WORDPRESS_DB_USER: wp_user
+    WORDPRESS_DB_PASSWORD: wp_pass
+  depends_on:
+    - db-placeholder
+
+x-frontend-template: &frontend-defaults
+  build:
+    dockerfile: Dockerfile
+  image: sat-frontend:latest
+  networks: [frontend-net, backend-net]
+  environment:
+    API_URL: http://satellite-backend:9000
 
 services:
   # Master backend: Headless WP
@@ -30,32 +49,144 @@ services:
     build:
       context: ./frontend-master
       dockerfile: Dockerfile
-      image: master-frontend:latest
-      networks:
-        - frontend-net
-        - backend-net
-      environment:
-        API_URL: http://master-backend:9000
-      ports:
-        - "4321:4321"
-      depends_on:
-        - master-backend
+    image: master-frontend:latest
+    networks:
+      - frontend-net
+      - backend-net
+    environment:
+      API_URL: http://master-backend:9000
+    ports:
+      - "4321:4321"
+    depends_on:
+      - master-backend
 
+  # Satellite 1
   satellite-backend-1:
+    <<: *backend-defaults
     build:
       context: ./sat1-backend
-      dockerfile: Dockerfile
-      image: sat1-backend:latest
-      networks:
-        - backend-net
-      volumes:
-        - sat1-wp-content:/var/www/html/wp-content
-      environment:
-        WORDPRESS_DB_HOST: db-sat1
-        WORDPRESS_DB_USER: wp_user
-        WORDPRESS_DB_PASSWORD: wp_pass
-        WORDPRESS_DB_NAME: wp_sat1
+    image: sat1-backend:v1.0
+    environment:
+      <<: *backend-defaults.environment
+      WORDPRESS_DB_HOST: db-sat1
+      WORDPRESS_DB_USER: wp_user
+    depends_on:
+      - db-sat1
+    ports:
+      - "9011:9000"
+
+  satellite-frontend-1:
+    <<: *frontend-defaults
+    build:
+      context: ./frontend-sat1
+    image: sat1-frontend:v1.0
+    environment:
+      <<: *frontend-defaults.environment
+      API_URL: http://satellite-backend-1:9000
+    ports:
+      - "4331:4321"
   
+  # Satellite 2
+  satellite-backend-2:
+    <<: *backend-defaults
+    build:
+      context: ./sat2-backend
+    image: sat2-backend:v1.0
+    environment:
+      <<: *backend-defaults.environment
+      WORDPRESS_DB_HOST: db-sat2
+      WORDPRESS_DB_USER: wp_user
+    depends_on:
+      - db-sat2
+    ports:
+      - "9012:9000"
+
+  satellite-frontend-2:
+    <<: *frontend-defaults
+    build:
+      context: ./frontend-sat2
+    image: sat2-frontend:v1.0
+    environment:
+      <<: *frontend-defaults.environment
+      API_URL: http://satellite-backend-2:9000
+    ports:
+      - "4341:4321"
+
+  # Satellite 3
+  satellite-backend-3:
+    <<: *backend-defaults
+    build:
+      context: ./sat3-backend
+    image: sat3-backend:v1.0
+    environment:
+      <<: *backend-defaults.environment
+      WORDPRESS_DB_HOST: db-sat3
+      WORDPRESS_DB_USER: wp_user
+    depends_on:
+      - db-sat3
+    ports:
+      - "9013:9000"
+
+  satellite-frontend-3:
+    <<: *frontend-defaults 
+    build:
+      context: ./frontend-sat3
+    image: sat3-frontend:v1.0
+    environment:
+      <<: *frontend-defaults.environment
+      API_URL: http://satellite-backend-3:9000
+    ports:
+      - "4351:4321"
+
+  # Satellite 4
+  satellite-backend-4:
+    <<: *backend-defaults
+    build:
+      context: ./sat4-backend
+    image: sat4-backend:v1.0
+    environment:
+      <<: *backend-defaults.environment
+      WORDPRESS_DB_HOST: db-sat4
+      WORDPRESS_DB_USER: wp_user
+    depends_on:
+      - db-sat4
+    ports:
+      - "9014:9000"
+
+  satellite-frontend-4:
+    <<: *frontend-defaults
+    build:
+      context: ./frontend-sat4
+    image: sat4-frontend:v1.0
+    environment:
+      <<: *frontend-defaults.environment
+      API_URL: http://satellite-backend-4:9000
+    ports:
+      - "4361:4321"
+
+  # Satellite 5
+  satellite-backend-5:
+    <<: *backend-defaults
+    build:
+      context: ./sat5-backend
+    image: sat5-backend:v1.0
+    environment:
+      WORDPRESS_DB_HOST: db-sat5
+      WORDPRESS_DB_USER: wp_user
+    depends_on:
+      - db-sat5
+    ports:
+      - "9015:9000"
+
+  satellite-frontend-5:
+    <<: *frontend-defaults
+    build:
+      context: ./frontend-sat5
+    image: sat5-frontend:v1.0
+    environment:
+      <<: *frontend-defaults.environment
+      API_URL: http://satellite-backend-5:9000
+
   db-master:
     image: mysql:8.0
     networks:
@@ -68,6 +199,76 @@ services:
     volumes:
       - db-master-data:/var/lib/mysql
 
+  db-sat1:
+    image: mysql:8.0
+    networks:
+      - backend-net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: wp_sat1
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+    volumes:
+      - db-sat1-data:/var/lib/mysql
+
+  db-sat2:
+    image: mysql:8.0
+    networks:
+      - backend-net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: wp_sat2
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+    volumes:
+      - db-sat2-data:/var/lib/mysql
+
+  db-sat3:
+    image: mysql:8.0
+    networks:
+      - backend-net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: wp_sat3
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+    volumes:
+      - db-sat3-data:/var/lib/mysql
+
+  db-sat4:
+    image: mysql:8.0
+    networks:
+      - backend-net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: wp_sat4
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+    volumes:
+      - db-sat4-data:/var/lib/mysql
+
+  db-sat5:
+    image: mysql:8.0
+    networks:
+      - backend-net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: wp_sat5
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+    volumes:
+      - db-sat5-data:/var/lib/mysql
+
 volumes:
   master-wp-content:
+  sat1-wp-content:
+  sat2-wp-content:
+  sat3-wp-content:
+  sat4-wp-content:
+  sat5-wp-content:
   db-master-data:
+  db-sat1-data:
+  db-sat2-data:
+  db-sat3-data:
+  db-sat4-data:
+  db-sat5-data:

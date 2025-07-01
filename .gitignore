@@ -1,0 +1,142 @@
+# ==========================================
+# SECRETS & SENSITIVE DATA
+# ==========================================
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+.env.local
+.env.production
+.env.staging
+
+# ==========================================
+# DOCKER & CONTAINERS
+# ==========================================
+# Docker volumes and data
+docker-volumes/
+docker-data/
+*-data/
+*.log
+
+# Docker override files
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.dev.yml
+
+# ==========================================
+# WORDPRESS
+# ==========================================
+# WordPress core (if downloaded locally)
+wp-admin/
+wp-includes/
+*.php
+!wp-config.php
+!wp-content/
+
+# WordPress uploads & cache
+wp-content/uploads/
+wp-content/cache/
+wp-content/backup/
+wp-content/backups/
+wp-content/upgrade/
+wp-content/debug.log
+
+# WordPress plugins (if managed via Composer)
+wp-content/plugins/
+!wp-content/plugins/.gitkeep
+
+# WordPress themes (if not custom)
+wp-content/themes/twenty*/
+
+# WordPress language files
+wp-content/languages/
+
+# WordPress database dumps
+*.sql
+*.sql.gz
+
+# ==========================================
+# NODE.JS & FRONTEND
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Frontend build artifacts
+dist/
+build/
+public/build/
+.next/
+.nuxt/
+.vuepress/dist
+
+# Package lock files (choose one)
+# package-lock.json
+# yarn.lock
+
+# ==========================================
+# DEVELOPMENT TOOLS
+# ==========================================
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# LOGS & TEMPORARY FILES
+# ==========================================
+*.log
+logs/
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# ==========================================
+# SSL CERTIFICATES
+# ==========================================
+*.crt
+*.cert
+*.ca-bundle
+ssl/
+
+# ==========================================
+# BACKUP FILES
+# ==========================================
+*.bak
+*.backup
+*.old
+*~
+
+# ==========================================
+# VERSION CONTROL
+# ==========================================
+.svn/
+.hg/
+.bzr/
+
+# ==========================================
+# CUSTOM PROJECT EXCLUSIONS
+# ==========================================
+# Add your custom exclusions here
+# testing/
+# docs/drafts/ 
