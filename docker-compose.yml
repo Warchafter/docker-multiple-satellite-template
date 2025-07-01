@@ -1,0 +1,73 @@
+version: "3.8"
+
+networks:
+  backend-net:
+  frontend-net:
+
+services:
+  # Master backend: Headless WP
+  master-backend:
+    build:
+      context: ./backend-master
+      dockerfile: Dockerfile
+    image: master-backend:latest
+    networks:
+      - backend-net
+    volumes:
+      - master-wp-content:/var/www/html/wp-content
+    environment:
+      WORDPRESS_DB_HOST: db-master
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_pass
+      WORDPRESS_DB_NAME: wp_master
+    depends_on:
+      - db-master
+    ports:
+      - "9001:9000"
+  
+  # Master frontend: Astro SSR
+  master-frontend:
+    build:
+      context: ./frontend-master
+      dockerfile: Dockerfile
+      image: master-frontend:latest
+      networks:
+        - frontend-net
+        - backend-net
+      environment:
+        API_URL: http://master-backend:9000
+      ports:
+        - "4321:4321"
+      depends_on:
+        - master-backend
+
+  satellite-backend-1:
+    build:
+      context: ./sat1-backend
+      dockerfile: Dockerfile
+      image: sat1-backend:latest
+      networks:
+        - backend-net
+      volumes:
+        - sat1-wp-content:/var/www/html/wp-content
+      environment:
+        WORDPRESS_DB_HOST: db-sat1
+        WORDPRESS_DB_USER: wp_user
+        WORDPRESS_DB_PASSWORD: wp_pass
+        WORDPRESS_DB_NAME: wp_sat1
+  
+  db-master:
+    image: mysql:8.0
+    networks:
+      - backend-net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: wp_master
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+    volumes:
+      - db-master-data:/var/lib/mysql
+
+volumes:
+  master-wp-content:
+  db-master-data:
