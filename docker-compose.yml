@@ -57,7 +57,7 @@ services:
   # Master backend: Headless WP
   master-backend:
     build:
-      context: ./project/backend-master
+      context: ./services/backend-master
       dockerfile: Dockerfile
     image: "master-backend:${IMAGE_TAG}" # This should be changed later on fit ${GITHUB_SHA::7} >> .env
     networks:
@@ -86,7 +86,7 @@ services:
   # Master frontend: Astro SSR
   master-frontend:
     build:
-      context: ./frontend-master
+      context: ./services/frontend-master
       dockerfile: Dockerfile
     image: master-frontend:latest
     networks:
@@ -112,7 +112,7 @@ services:
   satellite-backend-1:
     <<: *backend-defaults
     build:
-      context: ./sat1-backend
+      context: ./services/sat1-backend
     image: sat1-backend:v1.0
     volumes:
       - sat1-wp-content:/var/www/html/wp-content
@@ -128,7 +128,7 @@ services:
   satellite-frontend-1:
     <<: *frontend-defaults
     build:
-      context: ./sat1-frontend
+      context: ./services/sat1-frontend
     image: sat1-frontend:v1.0
     environment:
       <<: *frontend-env
@@ -140,7 +140,7 @@ services:
   satellite-backend-2:
     <<: *backend-defaults
     build:
-      context: ./sat2-backend
+      context: ./services/sat2-backend
     image: sat2-backend:v1.0
     volumes:
       - sat2-wp-content:/var/www/html/wp-content
@@ -156,7 +156,7 @@ services:
   satellite-frontend-2:
     <<: *frontend-defaults
     build:
-      context: ./sat2-frontend
+      context: ./services/sat2-frontend
     image: sat2-frontend:v1.0
     environment:
       <<: *frontend-env
@@ -168,7 +168,7 @@ services:
   satellite-backend-3:
     <<: *backend-defaults
     build:
-      context: ./sat3-backend
+      context: ./services/sat3-backend
     image: sat3-backend:v1.0
     volumes:
       - sat3-wp-content:/var/www/html/wp-content
@@ -184,7 +184,7 @@ services:
   satellite-frontend-3:
     <<: *frontend-defaults 
     build:
-      context: ./sat3-frontend
+      context: ./services/sat3-frontend
     image: sat3-frontend:v1.0
     environment:
       <<: *frontend-env
@@ -196,7 +196,7 @@ services:
   satellite-backend-4:
     <<: *backend-defaults
     build:
-      context: ./sat4-backend
+      context: ./services/sat4-backend
     image: sat4-backend:v1.0
     volumes:
       - sat4-wp-content:/var/www/html/wp-content
@@ -212,7 +212,7 @@ services:
   satellite-frontend-4:
     <<: *frontend-defaults
     build:
-      context: ./sat4-frontend
+      context: ./services/sat4-frontend
     image: sat4-frontend:v1.0
     environment:
       <<: *frontend-env
@@ -224,7 +224,7 @@ services:
   satellite-backend-5:
     <<: *backend-defaults
     build:
-      context: ./sat5-backend
+      context: ./services/sat5-backend
     image: sat5-backend:v1.0
     volumes:
       - sat5-wp-content:/var/www/html/wp-content
@@ -240,7 +240,7 @@ services:
   satellite-frontend-5:
     <<: *frontend-defaults
     build:
-      context: ./sat5-frontend
+      context: ./services/sat5-frontend
     image: sat5-frontend:v1.0
     environment:
       <<: *frontend-env
