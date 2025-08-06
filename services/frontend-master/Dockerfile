@@ -1,26 +1,17 @@
-# ── Stage 1: L’Alchimiste Frontend ────────────────────────────────────
-FROM node:lts-alpine AS l_alchimiste_ssr
+# ── Stage 1: Builder ─────────────────────────────────
+FROM node:lts-alpine AS builder
 WORKDIR /app
-
 COPY package.json package-lock.json ./
 RUN npm ci
-
-# Bring in the source and forge the static site
 COPY . .
-RUN npm run build # outputs to /app/dist
+RUN npm run build
 
-# ── Stage 2: Le Spectre ─────────────────────────────────────
-FROM node:lts-alpine AS le_spectre
-
+# ── Stage 2: Runtime ───────────────────────────────
+FROM node:lts-alpine AS runtime
 WORKDIR /app
-
-COPY --from=l_alchimiste_ssr /app/dist ./dist
-COPY --from=l_alchimiste_ssr /app/node_modules ./node_modules
-COPY --from=l_alchimiste_ssr /app/package.json ./package.json
-
-
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
 ENV HOST=0.0.0.0
 ENV PORT=4321
 EXPOSE 4321
-
-CMD ["node", "/dist/server/entry.mjs"]
+CMD ["node", "dist/server/entry.mjs"]

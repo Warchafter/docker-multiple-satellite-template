@@ -21,4 +21,7 @@ README.md
 dist/
 build/
 target/
-
+secrets
+secrets/
+tests
+tests/
