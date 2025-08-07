@@ -39,12 +39,18 @@ RUN curl -o wordpress.tar.gz https://wordpress.org/latest.tar.gz \
     && rm wordpress.tar.gz
 
 # We lock in the dependencies to use docker caching ability
-COPY composer.json composer.lock ./
+COPY composer.json ./
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer install --no-dev --optimize-autoloader \
+    && composer update --no-dev --optimize-autoloader \
     && rm /usr/local/bin/composer
 
 COPY .htaccess wp-config.php ./
+
+COPY wp-content ./wp-content
+
+RUN mkdir -p wp-content/uploads \
+    && chown -R www-data:www-data wp-content/uploads \
+    && chmod -R 755 wp-content/uploads
 
 # ── Stage 2: Le messager de Soie - Production Runtime ─────────────────────────────────────────
 # The sole purpose of this second phase is to make the final container super lean by only copying
@@ -56,7 +62,7 @@ RUN a2enmod rewrite \
     && sed -ri 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        libicu-dev libzip-dev libonig-dev \
+        libicu-dev libzip-dev libonig-dev default-mysql-client \
     && docker-php-ext-install intl pdo_mysql mysqli zip opcache \
     && rm -rf /var/lib/apt/lists/*
 
@@ -72,7 +78,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Ensuring correct single-layer permissions for persistence
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/wp-content/uploads
 
 #Expose port for Apache
 EXPOSE 80
