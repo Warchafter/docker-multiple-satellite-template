@@ -9,13 +9,13 @@ RUN a2enmod rewrite \
 
 # Install system libs & PHP extensions for WP/Woo
 # "apt-get update" refreshes the Debian package index
-RUN apt-get update \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     # "apt-get install" bring in libraries needed to compile PHP extensions
     # libicu-dev for intl
     # libzip-dev for zip
     # libonig-dev for mbstring support via mysqli
-    && apt-get install -y --no-install-recommends \
-        curl libicu-dev libzip-dev libonig-dev autoconf g++ make \
+        libicu-dev libzip-dev libonig-dev \
+        autoconf g++ make \
     # "docker-php-ext-install" compiles and enables our required PHP modules
     && docker-php-ext-install intl pdo_mysql mysqli zip opcache \
     # allows us to use an argument variable to control the installation of the debugger tool
@@ -46,7 +46,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 COPY .htaccess wp-config.php ./
 
-COPY wp-content ./wp-content
+# COPY wp-content ./wp-content
 
 RUN mkdir -p wp-content/uploads \
     && chown -R www-data:www-data wp-content/uploads \
@@ -57,34 +57,21 @@ RUN mkdir -p wp-content/uploads \
 # the absolute required dependencies and libraries that are used.
 FROM php:8.1-apache
 
-# Re-install the same extensions for runtime
 RUN a2enmod rewrite \
-    && sed -ri 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-        libicu-dev libzip-dev libonig-dev default-mysql-client \
+    && sed -ri 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        g++ make autoconf \
+        libicu-dev libonig-dev libzip-dev \
     && docker-php-ext-install intl pdo_mysql mysqli zip opcache \
+    && apt-get purge -y --auto-remove g++ make autoconf libicu-dev libonig-dev libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install WP-CLI for runtime use
-RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-    && chmod +x /usr/local/bin/wp
-
+# Copy the finished application
 WORKDIR /var/www/html
-COPY --from=l_architecte_php /var/www/html /var/www/html
+COPY --from=l_architecte_php /var/www/html /var/www/html/
 
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["docker-entrypoint.sh"]
-
-# Ensuring correct single-layer permissions for persistence
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html \
-    && chmod -R 775 /var/www/html/wp-content/uploads
-
-#Expose port for Apache
-EXPOSE 80
-
-HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost/wp-json/ || exit 1
+RUN chown -R www-data:www-data /var/www/html
 
 # Final step: launch Apache quietly
 CMD ["apache2-foreground"]

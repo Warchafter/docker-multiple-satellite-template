@@ -1,128 +1,109 @@
 networks:
-  backend-net:
+  traefik_public:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.10.0.0/16
-          gateway: 10.10.0.1
-  frontend-net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.20.0.0/16
-          gateway: 10.20.0.1
-
-x-backend-env: &backend-env
-  WORDPRESS_DB_PASSWORD_FILE: /run/secrets/wp_db_pass
-  WORDPRESS_DB_USER: wp_user
-
-x-frontend-env: &frontend-env {}
-
-x-backend-template: &backend-defaults
-  build:
-    dockerfile: Dockerfile
-  image: sat-backend:latest
-  networks: [backend-net]
-  volumes:
-    - wp-content:/var/www/html/wp-content
-  secrets:
-    - mysql_root_pass
-    - wp_db_pass
-  healthcheck:
-    test: ["CMD-SHELL","curl -f http://localhost:80/wp-json || exit 1"]
-    interval: 30s
-    timeout: 5s
-    retries: 3
-    start_period: 15s
-  restart: unless-stopped
-
-x-frontend-template: &frontend-defaults
-  build:
-    dockerfile: Dockerfile
-  image: sat-frontend:latest
-  networks: [frontend-net, backend-net]
-  ports: ["4321:4321"]
-  healthcheck:
-    test: ["CMD-SHELL","curl -f http://localhost:4321/health || exit 1"]
-    interval: 30s
-    timeout: 5s
-    retries: 3
-    start_period: 15s
-  restart: unless-stopped
-  environment:
-    API_URL: http://satellite-backend:80
 
 services:
+  traefik:
+    image: "traefik:v3.5"
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--providers.docker.network=traefik_public"
+    ports:
+      - "80:80" # Public HTTP
+      - "8080:8080" # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - traefik_public
+
   # Master backend: Headless WP
   master-backend:
     build:
       context: ./services/backend-master
       dockerfile: Dockerfile
-    image: "master-backend:${IMAGE_TAG}" # This should be changed later on fit ${GITHUB_SHA::7} >> .env
+    image: "master-backend:${IMAGE_TAG:-latest}" # This should be changed later on fit ${GITHUB_SHA::7} >> .env
+    container_name: master-backend
+    restart: unless-stopped
     networks:
-      - backend-net
+      - traefik_public
     volumes:
       - master-wp-content:/var/www/html/wp-content
-    healthcheck:
-      test: ["CMD-SHELL","curl -f http://localhost:80/wp-json || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    restart: unless-stopped
+    # healthcheck:
+    #   test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1:80;echo -e \"GET /wp-json/ HTTP/1.1\r\nhost: 127.0.0.1:80\r\nConnection: close\r\n\r\n\" >&3;grep 'HTTP/1.1 200 OK' <&3"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 60s
     secrets:
       - wp_cli_user
       - wp_cli_pass
       - wp_cli_email
+      - wp_db_pass
+      - mysql_root_pass
     environment:
       WORDPRESS_DB_HOST: ${MYSQLHOST}
       WORDPRESS_DB_PORT: ${MYSQLPORT}
       WORDPRESS_DB_USER: ${MYSQLUSER}
       WORDPRESS_DB_PASSWORD: ${MYSQLPASSWORD}
       WORDPRESS_DB_NAME: ${MYSQLDATABASE}
+      WP_URL: http://master-backend
+      WP_TITLE: "Master Headless Wordpress"
+      WP_ADMIN_USER_FILE: /run/secrets/wp_cli_user
+      WP_ADMIN_EMAIL_FILE: /run/secrets/wp_cli_email
+      WP_ADMIN_PASS_FILE: /run/secrets/wp_cli_pass
       WP_DEPLOYER_EMAIL: ${WP_DEPLOYER_EMAIL}
       WP_DEPLOYER_PASS: ${WP_DEPLOYER_PASS}
-    ports:
-      - "9001:80"
-  
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.localhost`)" # the address for the API
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+
   # Master frontend: Astro SSR
   master-frontend:
     build:
       context: ./services/frontend-master
-      dockerfile: Dockerfile
-    image: master-frontend:latest
+    image: master-frontend:${IMAGE_TAG:-latest}
+    container_name: master-frontend
+    restart: unless-stopped
     networks:
-      - frontend-net
-      - backend-net
+      - traefik_public
     healthcheck:
       test: ["CMD-SHELL","curl -f http://localhost:4321/health || exit 1"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 15s
-    restart: unless-stopped
-    secrets:
-      - mysql_root_pass
+      start_period: 60s
     environment:
-      API_URL: http://master-backend:80
-      PUBLIC_WP_API: http://master-backend:80/wp-json/wp/v2
-    ports:
-      - "4321:4321"
+      PUBLIC_WP_API: http://api.localhost/wp-json/wp/v2
     depends_on:
-      - master-backend
+      traefik:
+        condition: service_started
+      # master-backend:
+      #   condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host('www.localhost')" # the address for the site
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=4321" # the internal astro port
 
 volumes:
   master-wp-content:
 
+# leave this here for production build only
 secrets:
   wp_cli_user:
-    file: ./secrets/wp_cli_user.txt
+    file: ./secrets/wp_cli_user
   wp_cli_pass:
-    file: ./secrets/wp_cli_pass.txt
+    file: ./secrets/wp_cli_pass
   wp_cli_email:
-    file: ./secrets/wp_cli_email.txt
+    file: ./secrets/wp_cli_email
   wp_db_pass:
-    file: ./secrets/wp_db_pass.txt
+    file: ./secrets/wp_db_pass
   mysql_root_pass:
-    file: ./secrets/mysql_root_pass.txt
+    file: ./secrets/mysql_root_pass
