@@ -1,5 +1,6 @@
 networks:
   traefik_public:
+    name: traefik_public
     driver: bridge
 
 services:
@@ -33,12 +34,12 @@ services:
       - traefik_public
     volumes:
       - master-wp-content:/var/www/html/wp-content
-    # healthcheck:
-    #   test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1:80;echo -e \"GET /wp-json/ HTTP/1.1\r\nhost: 127.0.0.1:80\r\nConnection: close\r\n\r\n\" >&3;grep 'HTTP/1.1 200 OK' <&3"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/80;echo -e 'GET /wp-json/system/v1/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep 'HTTP/1.1 200 OK' <&3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     secrets:
       - wp_cli_user
       - wp_cli_pass
@@ -51,6 +52,7 @@ services:
       WORDPRESS_DB_USER: ${MYSQLUSER}
       WORDPRESS_DB_PASSWORD: ${MYSQLPASSWORD}
       WORDPRESS_DB_NAME: ${MYSQLDATABASE}
+      WP_PUBLIC_URL: http://api.localhost
       WP_URL: http://master-backend
       WP_TITLE: "Master Headless Wordpress"
       WP_ADMIN_USER_FILE: /run/secrets/wp_cli_user
@@ -63,6 +65,7 @@ services:
       - "traefik.http.routers.backend.rule=Host(`api.localhost`)" # the address for the API
       - "traefik.http.routers.backend.entrypoints=web"
       - "traefik.http.services.backend.loadbalancer.server.port=80"
+      - "traefik.docker.network=docker-practice_traefik_public"
 
   # Master frontend: Astro SSR
   master-frontend:
@@ -74,23 +77,25 @@ services:
     networks:
       - traefik_public
     healthcheck:
-      test: ["CMD-SHELL","curl -f http://localhost:4321/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:4321 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     environment:
+      WP_API_INTERNAL: http://master-backend:80/wp-json/wp/v2
       PUBLIC_WP_API: http://api.localhost/wp-json/wp/v2
     depends_on:
       traefik:
         condition: service_started
-      # master-backend:
-      #   condition: service_healthy
+      master-backend:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host('www.localhost')" # the address for the site
+      - "traefik.http.routers.frontend.rule=Host(`www.localhost`)" # the address for the site
       - "traefik.http.routers.frontend.entrypoints=web"
       - "traefik.http.services.frontend.loadbalancer.server.port=4321" # the internal astro port
+      - "traefik.docker.network=docker-practice_traefik_public"
 
 volumes:
   master-wp-content:
