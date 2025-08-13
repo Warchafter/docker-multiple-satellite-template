@@ -47,26 +47,27 @@ wordpress/
 !wordpress/.gitkeep
 
 # WordPress uploads & cache
-wp-content/uploads/
-wp-content/cache/
-wp-content/backup/
-wp-content/backups/
-wp-content/upgrade/
-wp-content/debug.log
+backend/wp-content
+backend/wp-content/uploads/
+backend/wp-content/cache/
+backend/wp-content/backup/
+backend/wp-content/backups/
+backend/wp-content/upgrade/
+backend/wp-content/debug.log
 
 # WordPress plugins (managed via Composer/Docker)
-wp-content/plugins/
+backend/wp-content/plugins/
 !wp-content/plugins/.gitkeep
 !wp-content/plugins/custom-*/
 
 # WordPress themes (default themes, not custom)
-wp-content/themes/twenty*/
-wp-content/themes/hello-elementor/
-wp-content/themes/astra/
-wp-content/themes/storefront/
+backend/wp-content/themes/twenty*/
+backend/wp-content/themes/hello-elementor/
+backend/wp-content/themes/astra/
+backend/wp-content/themes/storefront/
 
 # WordPress language files
-wp-content/languages/
+backend/wp-content/languages/
 
 # WordPress database dumps
 *.sql
