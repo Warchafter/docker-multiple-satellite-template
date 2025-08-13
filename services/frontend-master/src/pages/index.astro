@@ -4,7 +4,8 @@ import { ProductCard } from '../components/ProductCard';
 import '../styles/global.css'; // Import CSS this way
 
 // Use the same environment variable approach as before
-const API = process.env.PUBLIC_WP_API || import.meta.env.PUBLIC_WP_API || 'http://master-backend:80/wp-json/wp/v2';
+const API =
+process.env.WP_API_INTERNAL || import.meta.env.PUBLIC_WP_API || 'http://master-backend:80/wp-json/wp/v2';
 
 console.log('API URL:', API); // Debug log
 

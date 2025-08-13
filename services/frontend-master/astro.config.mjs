@@ -7,6 +7,7 @@ import node from '@astrojs/node';
 export default defineConfig({
     output: 'server',
     adapter: node({mode: 'standalone'}),
+    server: { host: true, port: 4321 },
     integrations: [
         react(),
         // Tailwind CSS v4 is automatically integrated with Astro
