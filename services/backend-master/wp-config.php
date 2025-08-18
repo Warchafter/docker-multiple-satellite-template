@@ -10,14 +10,14 @@ define('DB_USER', getenv('WORDPRESS_DB_USER'));
 define('DB_PASSWORD', trim(file_get_contents(getenv('WORDPRESS_DB_PASSWORD_FILE'))));
 
 // Keys & Salts (use simple fallbacks for now)
-define('AUTH_KEY',         getenv('WP_AUTH_KEY') ?: 'put-your-unique-phrase-here-auth-key');
-define('SECURE_AUTH_KEY',  getenv('WP_SECURE_AUTH_KEY') ?: 'put-your-unique-phrase-here-secure-auth-key');
-define('LOGGED_IN_KEY',    getenv('WP_LOGGED_IN_KEY') ?: 'put-your-unique-phrase-here-logged-in-key');
-define('NONCE_KEY',        getenv('WP_NONCE_KEY') ?: 'put-your-unique-phrase-here-nonce-key');
+define('AUTH_KEY',         getenv('WP_AUTH_KEY'));
+define('SECURE_AUTH_KEY',  getenv('WP_SECURE_AUTH_KEY'));
+define('LOGGED_IN_KEY',    getenv('WP_LOGGED_IN_KEY'));
+define('NONCE_KEY',        getenv('WP_NONCE_KEY'));
 
 $table_prefix = 'wp_';
-define('WP_SITEURL', getenv('PUBLIC_WP_API'));
-define('WP_HOME',    getenv('PUBLIC_WP_API'));
+define('WP_SITEURL', getenv('WP_PUBLIC_URL'));
+define('WP_HOME',    getenv('WP_PUBLIC_URL'));
 
 // Disable file edits, enforce REST usage
 define('DISALLOW_FILE_EDIT', true);

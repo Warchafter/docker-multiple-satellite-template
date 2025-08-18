@@ -46,7 +46,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 COPY .htaccess wp-config.php ./
 
-# COPY wp-content ./wp-content
+COPY wp-content ./wp-content
 
 RUN mkdir -p wp-content/uploads \
     && chown -R www-data:www-data wp-content/uploads \
